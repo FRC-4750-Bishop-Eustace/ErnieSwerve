@@ -47,7 +47,7 @@ class SwerveModule:
         #kP = 1.5, kI = 0.0, kD = 0.0
         # enable pid continues input (0.0, 5.0)
         # set tolerance (0.05, 0.05)
-        self._pid_controller = PIDController(1.5, 0.0, 0.0, 0.05)
+        self._pid_controller = PIDController(0.0, 0.0, 0.0, 0.05)
         self._pid_controller.enableContinuousInput(0.0, 5.0) # Will set the 0 and 5 as the same point
         self._pid_controller.setTolerance(1, 1) # Tolerance where the PID will be accpeted aligned
 
@@ -131,19 +131,19 @@ class SwerveModule:
         """
         # Calculate the error using the current voltage and the requested voltage.
         # DO NOT use the #self.get_voltage function here. It has to be the raw voltage.
-        Angle1_0 = self.get_degree()
-        Angle1 = self.degree_to_voltage(Angle1_0)
-        Angle2 = self.degree_to_voltage(self._requested_angle)
-        error = self._pid_controller.calculate(Angle1, Angle2)
+        #Angle1_0 = self.get_degree()
+        #Angle1 = self.degree_to_voltage(Angle1_0)
+        #Angle2 = self.degree_to_voltage(self._requested_angle)
+        #error = self._pid_controller.calculate(Angle1, Angle2)
         ## Does the first value need to be set to subtract the zero position
 
         # Set the output 0 as the default value
-        output = 0
+        #output = 0
         # If the error is not tolerable, set the output to the error.
         # Else, the output will stay at zero.
         #if not self._pid_controller.atSetpoint():
         # Use max-min to clamped the output between -1 and 1.
-        #    output = max(min(error, 1), -1)
+        #output = max(min(error, 1), -1)
 
         #rotate_speed = (output / 360) * 5
         # Put the output to the dashboard
@@ -155,7 +155,7 @@ class SwerveModule:
 
         # Set the output as the rotateMotor's voltage / also move the rotational motors
         ## Convert output to voltage value
-        self.rotateMotor.set(output)
+        #self.rotateMotor.set(output)
 
         # Set the requested speed as the driveMotor's voltage
         self.driveMotor.set(self._requested_speed)
