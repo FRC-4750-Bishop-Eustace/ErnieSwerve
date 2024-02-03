@@ -1,102 +1,210 @@
 #!/usr/bin/env python3
-#
-# Copyright (c) FIRST and other WPILib contributors.
-# Open Source Software; you can modify and/or share it under the terms of
-# the WPILib BSD license file in the root directory of this project.
-#
-# main code/ iniations
-#
-#
-#
 
-import cscore
-import ntcore
 import wpilib
-import wpimath
-from wpilib.cameraserver import CameraServer
-import wpilib.drive
-import wpimath.filter
-import wpimath.controller
-from wpimath.kinematics import SwerveModuleState
-import drivetrain
-import shooter
 
-#GLOBAL VARS
-intakeMotorSpeed_1 = -2
-intakeMotorSpeed_2 = -3
-speakerMotorSpeed_1 = 1
-speakerMotorSpeed_2 = 1
-ampMotorSpeed_1 = 1
-ampMotorSpeed_2 = 2
+from phoenix5.sensors import CANCoder
+from rev import CANSparkMax, SparkMaxAbsoluteEncoder
 
-class MyRobot(wpilib.TimedRobot):
-    def robotInit(self) -> None:
-        """Robot initialization function"""
-        #CONROLLERS 
-        self.controller = wpilib.Joystick(2)
-        #self.controller = wpilib.PS4Controller(2)
-        #self.controller = wpilib.XboxController(0)
-        self.swerve = drivetrain.Drivetrain()
-        self.shooter = shooter.ShootModule()
+from magicbot import MagicRobot
 
-        # get the default instance of NetworkTables
-        nt = ntcore.NetworkTableInstance.getDefault()
+from robotpy_ext.autonomous.selector import AutonomousModeSelector
 
-        # Start publishing an array of module states with the "/SwerveStates" key
-        topic = nt.getStructArrayTopic("/SwerveStates", SwerveModuleState)
-        self.pub = topic.publish()
+#from networktables import NetworkTables
+#from networktables.util import ntproperty
 
-        # Slew rate limiters to make joystick inputs more gentle; 1/3 sec from 0 to 1.
-        self.xspeedLimiter = wpimath.filter.SlewRateLimiter(3)
-        self.yspeedLimiter = wpimath.filter.SlewRateLimiter(3)
-        self.rotLimiter = wpimath.filter.SlewRateLimiter(3)
+#from rev.color import ColorSensorV3, ColorMatch
 
-        # Launch Camera
-        #wpilib.CameraServer.launch()
+from components import swervedrive, swervemodule
+#from common import color_sensor, vision
 
-    def autonomousPeriodic(self) -> None:
-        self.driveWithJoystick(False)
-        self.swerve.updateOdometry()
+from collections import namedtuple
+# Get the config preset from the swervemodule
+ModuleConfig = swervemodule.ModuleConfig
 
-    def teleopPeriodic(self) -> None:
-        #self.pub.set([frontLeftState,frontRightState,backLeftState,backRightState])
-        if self.controller.getRawButtonPressed(1):
-            self.shooter.speakershootmotor(speakerMotorSpeed_1, speakerMotorSpeed_2)
-        if self.controller.getRawButtonPressed(2):
-            self.shooter.stopmotor()
-        self.driveWithJoystick(True)
+import time
 
-    def driveWithJoystick(self, fieldRelative: bool) -> None:
-        # Get the x speed. We are inverting this because Xbox controllers return
-        # negative values when we push forward.
-        # NOTE: Check if we need inversion here
-        xSpeed = (
-            -self.xspeedLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(0), 0.5)
-            )
-            * drivetrain.kMaxSpeed
-        )
+class MyRobot(MagicRobot):
+    """
+    After creating low-level components like "shooter", use component's name and an underscore
+    to inject objects to the component.
+    
+    e.g.
+    Using variable annotation like "shooter_beltMotor: ctre.WPI_VictorSPX" decleares the type of the variable.
+    When beltMotor is called from the shooter component, it's going to be a VictorSPX object.
 
-        # Get the y speed or sideways/strafe speed. We are inverting this because
-        # we want a positive value when we pull to the left. Xbox controllers
-        # return positive values when you pull to the right by default.
-        # NOTE: Check if we need inversion here
-        ySpeed = (
-            -self.yspeedLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(1), 0.5)
-            )
-            * drivetrain.kMaxSpeed
-        )
+    Using equal sign for variable decleration like "shooter_beltMotor = ctre.WPI_VictorSPX(11)" creates the actual object.
+    When beltMotor is called from the shooter component, it's going to be a VictorSPX at the can port 11.
 
-        # Get the rate of angular rotation. We are inverting this because we want a
-        # positive value when we pull to the left (remember, CCW is positive in
-        # mathematics). Xbox controllers return positive values when you pull to
-        # the right by default.
-        rot = (
-            -self.rotLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(3), 0.5)
-            )
-            * drivetrain.kMaxSpeed
-        )
+    Use the equal sign (mostly) in the #createObjects function so they can be correctly injected to their parent components.
 
-        self.swerve.drive(xSpeed, 0, 0, fieldRelative, self.getPeriod())
+    For more info refer to https://robotpy.readthedocs.io/en/stable/frameworks/magicbot.html
+    """
+
+    # Create low-level object
+    drive: swervedrive.SwerveDrive
+
+    frontLeftModule: swervemodule.SwerveModule
+    frontRightModule: swervemodule.SwerveModule
+    rearLeftModule: swervemodule.SwerveModule
+    rearRightModule: swervemodule.SwerveModule
+
+    # Create configs for each module. This is before #createObjects because modules need these configs to be initialized.
+    frontLeftModule_cfg = ModuleConfig(sd_prefix='FrontLeft_Module', zero=202.67578125, inverted=True, allow_reverse=True)
+    frontRightModule_cfg = ModuleConfig(sd_prefix='FrontRight_Module', zero=273.8671875, inverted=False, allow_reverse=True)
+    rearLeftModule_cfg = ModuleConfig(sd_prefix='RearLeft_Module', zero=232.822265625, inverted=True, allow_reverse=True)
+    rearRightModule_cfg = ModuleConfig(sd_prefix='RearRight_Module', zero=5.2734375, inverted=False, allow_reverse=True)
+
+    # Create common components
+    #vision: vision.Vision
+    #colorSensor: color_sensor.ColorSensor
+
+    def createObjects(self):
+        """
+        This is where all the components are actually created with "=" sign.
+        Components with a parent prefix like "shooter_" will be injected.
+        """
+        # SmartDashboard
+        #self.sd = NetworkTables.getTable('SmartDashboard')
+
+        # Gamepad
+        self.gamempad = wpilib.Joystick(2)
+        #self.gamempad2 = wpilib.Joystick(1)
+
+        # Drive Motors
+        self.frontLeftModule_driveMotor = CANSparkMax(4, CANSparkMax.MotorType.kBrushless)
+        self.frontRightModule_driveMotor = CANSparkMax(7, CANSparkMax.MotorType.kBrushless)
+        self.rearLeftModule_driveMotor = CANSparkMax(2, CANSparkMax.MotorType.kBrushless)
+        self.rearRightModule_driveMotor = CANSparkMax(5, CANSparkMax.MotorType.kBrushless)
+        
+        # Rotate Motors
+        self.frontLeftModule_rotateMotor = CANSparkMax(3, CANSparkMax.MotorType.kBrushless)
+        self.frontRightModule_rotateMotor = CANSparkMax(8, CANSparkMax.MotorType.kBrushless)
+        self.rearLeftModule_rotateMotor = CANSparkMax(1, CANSparkMax.MotorType.kBrushless)
+        self.rearRightModule_rotateMotor = CANSparkMax(6, CANSparkMax.MotorType.kBrushless)
+
+        # Encoders
+        self.frontLeftModule_encoder = CANCoder(13, "rio")
+        self.frontRightModule_encoder = CANCoder(10, "rio")
+        self.rearLeftModule_encoder = CANCoder(11, "rio")
+        self.rearRightModule_encoder = CANCoder(12, "rio")
+
+        # PDP
+        self.pdp = wpilib.PowerDistribution(0, wpilib._wpilib.PowerDistribution.ModuleType.kCTRE)
+
+    def disabledPeriodic(self):
+        # Update the dashboard, even when the robot is disabled.
+        #self.update_sd()
+        pass
+
+
+    def autonomousInit(self):
+        # Reset the drive when the auto starts.
+        #self.drive.flush()
+        #self.drive.threshold_input_vectors = True
+        pass
+
+    def autonomous(self):
+        # For auto, use MagicBot's auto mode.
+        # This will load the ./autonomous folder.
+        #super().autonomous()
+        pass
+
+    def teleopInit(self):
+        # Reset the drive when the teleop starts.
+        self.drive.flush()
+        self.drive.squared_inputs = True
+        self.drive.threshold_input_vectors = True
+        print("in teleop init")
+
+    def move(self, x, y, rcw):
+        """
+        This function is ment to be used by the teleOp.
+        :param x: Velocity in x axis [-1, 1]
+        :param y: Velocity in y axis [-1, 1]
+        :param rcw: Velocity in z axis [-1, 1]
+        """
+
+        if self.gamempad.getRawButton(3):
+            # If the button is pressed, lower the rotate speed.
+            rcw *= 0.7
+        
+        self.drive.move(x, y, rcw)
+
+    def teleopPeriodic(self):
+        # Drive
+        self.move(self.gamempad.getRawAxis(1), 0, 0)
+
+        print(self.frontRightModule_encoder.getAbsolutePosition())
+        #print(self.gamempad.getRawAxis(2))
+        '''
+        # Lock
+        if self.gamempad.getRawButton(1):
+            self.drive.request_wheel_lock = True
+
+        # Vectoral Button Drive
+        if self.gamempad.getPOV() == 0:
+            self.drive.set_raw_fwd(-0.35)
+        elif self.gamempad.getPOV() == 180:
+            self.drive.set_raw_fwd(0.35)
+        elif self.gamempad.getPOV() == 90:
+            self.drive.set_raw_strafe(0.35)
+        elif self.gamempad.getPOV() == 270:
+            self.drive.set_raw_strafe(-0.35)
+
+        # Climber
+        if self.gamempad2.getRawButton(1):
+            self.climbingMotor.set(1)
+        else:
+            self.climbingMotor.set(0)
+
+        # Hook
+        if self.gamempad2.getRawAxis(5) < 0 and not self.switch.get():
+            self.hookMotor.set(self.gamempad2.getRawAxis(5))
+        elif self.gamempad2.getRawAxis(5) > 0:
+            self.hookMotor.set(self.gamempad2.getRawAxis(5))
+        else:
+            self.hookMotor.set(0)
+
+        # Shooter
+        if self.gamempad.getRawAxis(3) > 0:
+            self.shooter.shoot()
+        elif self.gamempad.getRawButton(6):
+            self.shooter.align()
+        elif self.gamempad.getRawButton(5) or self.gamempad2.getRawAxis(2) > 0:
+            self.shooter.unload()
+        elif self.gamempad.getRawAxis(2) > 0 or self.gamempad2.getRawAxis(3) > 0:
+            self.shooter.intake()
+        else:
+            self.shooter.stop()
+
+        # WoF
+        if self.gamempad2.getRawButton(3):
+            self.wof.handleFirstStage()
+        elif self.gamempad2.getRawButton(2):
+            self.wof.handleSecondStage()
+        elif self.gamempad2.getRawButton(4):
+            self.wof.reset()
+        elif self.gamempad2.getRawButton(5):
+            self.wof.manualTurn(1)
+        elif self.gamempad2.getRawButton(6):
+            self.wof.manualTurn(-1)
+        else:
+            self.wof.manualTurn(0)
+        '''
+        # Update smartdashboard
+        #self.update_sd()
+
+    def update_sd(self):
+        """
+        Calls each component's own update function
+        and puts data to the smartdashboard.
+        """
+        self.sd.putNumber('Climb_Current_Draw', self.pdp.getCurrent(10))
+
+        self.drive.update_smartdash()
+        self.colorSensor.updateSD()
+        self.wof.updateSD()
+        self.vision.updateTable()
+
+if __name__ == "__main__":
+    wpilib.run(MyRobot)
