@@ -49,10 +49,17 @@ class MyRobot(MagicRobot):
     rearRightModule: swervemodule.SwerveModule
 
     # Create configs for each module. This is before #createObjects because modules need these configs to be initialized.
+    '''
     frontLeftModule_cfg = ModuleConfig(sd_prefix='FrontLeft_Module', zero=202.67578125, inverted=True, allow_reverse=True)
-    frontRightModule_cfg = ModuleConfig(sd_prefix='FrontRight_Module', zero=273.8671875, inverted=False, allow_reverse=True)
+    frontRightModule_cfg = ModuleConfig(sd_prefix='FrontRight_Module', zero=273.8671875, inverted=True, allow_reverse=True)
     rearLeftModule_cfg = ModuleConfig(sd_prefix='RearLeft_Module', zero=232.822265625, inverted=False, allow_reverse=True)
-    rearRightModule_cfg = ModuleConfig(sd_prefix='RearRight_Module', zero=5.2734375, inverted=True, allow_reverse=True)
+    rearRightModule_cfg = ModuleConfig(sd_prefix='RearRight_Module', zero=5.2734375, inverted=False, allow_reverse=True)
+    '''
+    frontLeftModule_cfg = ModuleConfig(sd_prefix='FrontLeft_Module', zero=0.0, inverted=True, allow_reverse=False)
+    frontRightModule_cfg = ModuleConfig(sd_prefix='FrontRight_Module', zero=0.0, inverted=True, allow_reverse=False)
+    rearLeftModule_cfg = ModuleConfig(sd_prefix='RearLeft_Module', zero=0.0, inverted=False, allow_reverse=False)
+    rearRightModule_cfg = ModuleConfig(sd_prefix='RearRight_Module', zero=0.0, inverted=False, allow_reverse=False)
+
 
     # Create common components
     #vision: vision.Vision
@@ -208,22 +215,3 @@ class MyRobot(MagicRobot):
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)
-
-
-def main():
-    # Connect to the NetworkTables server running on the robot
-    NetworkTables.initialize(server='roborio-4750-frc.local')  # Replace 'TEAM' with your actual team number
-
-    # Get a reference to the "example" table
-    example_table = NetworkTables.getTable('example')
-
-    # Write a value to the "myValue" key
-    example_table.putNumber('Climb_Current_Draw', 10.0)
-
-    # Read the value from the "myValue" key
-    retrieved_value = example_table.getNumber('myValue', 0.0)
-    print("Retrieved Value:", retrieved_value)
-
-if __name__ == '__main__':
-    main()
-
