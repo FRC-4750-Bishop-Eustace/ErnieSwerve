@@ -22,7 +22,7 @@ class SwerveDrive:
     
     lower_input_thresh = 0.1
     rotation_multiplier = 0.5
-    xy_multiplier = 0.65
+    xy_multiplier = 0.1 # orginally at 0.65
 
     def setup(self):
         """
@@ -61,7 +61,7 @@ class SwerveDrive:
         }
 
         # Variables that allow enabling and disabling of features in code
-        self.squared_inputs = True
+        self.squared_inputs = False
         self.threshold_input_vectors = True
 
         self.width = (30 / 12) / 2 # (Inch / 12 = Foot) / 2
