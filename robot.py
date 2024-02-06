@@ -201,17 +201,20 @@ class MyRobot(MagicRobot):
         # Update smartdashboard
         #self.update_sd()
 
-    def update_sd(self):
-        """
-        Calls each component's own update function
-        and puts data to the smartdashboard.
-        """
-        self.sd.putNumber('Climb_Current_Draw', self.pdp.getCurrent(10))
+   import ntcore
 
-        self.drive.update_smartdash()
-        self.colorSensor.updateSD()
-        self.wof.updateSD()
-        self.vision.updateTable()
+inst = ntcore.NetworkTableInstance.getDefault()
+table = inst.getTable("datatable")
 
-if __name__ == "__main__":
-    wpilib.run(MyRobot)
+# get a topic from a NetworkTableInstance
+# the topic name in this case is the full name
+dblTopic = inst.getDoubleTopic("/datatable/X")
+
+# get a topic from a NetworkTable
+# the topic name in this case is the name within the table;
+# this line and the one above reference the same topic
+dblTopic = table.getDoubleTopic("X")
+
+# get a type-specific topic from a generic Topic
+genericTopic = inst.getTopic("/datatable/X")
+dblTopic = ntcore.DoubleTopic(genericTopic)
