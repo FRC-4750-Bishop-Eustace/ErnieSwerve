@@ -204,7 +204,7 @@ class MyRobot(MagicRobot):
    import ntcore
 
 inst = ntcore.NetworkTableInstance.getDefault()
-table = inst.getTable("datatable")
+table = inst.getTable("SmartDashboard")
 
 # get a topic from a NetworkTableInstance
 # the topic name in this case is the full name
@@ -218,3 +218,5 @@ dblTopic = table.getDoubleTopic("X")
 # get a type-specific topic from a generic Topic
 genericTopic = inst.getTopic("/datatable/X")
 dblTopic = ntcore.DoubleTopic(genericTopic)
+
+
