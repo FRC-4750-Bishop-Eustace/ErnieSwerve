@@ -20,7 +20,8 @@ import navxGyro
 class MyRobot(wpilib.TimedRobot):
     def robotInit(self) -> None:
         """Robot initialization function"""
-        self.controller = wpilib.Joystick(2)
+        self.controller = wpilib.Joystick(variables.joystickPort1)
+        self.controller2 = wpilib.Joystick(variables.joystickPort2)
         self.swerve = drivetrain.Drivetrain()
         self.shooter = shooter.ShootModule()
         # navxGyro is a file to test the navx Gyro. This can be ignored/commented out.
@@ -29,37 +30,52 @@ class MyRobot(wpilib.TimedRobot):
         # Slew rate limiters to make joystick inputs more gentle; 1/3 sec from 0 to 1.
         # Speed limiters
 
-        self.xspeedLimiter = wpimath.filter.SlewRateLimiter(3)
-        self.yspeedLimiter = wpimath.filter.SlewRateLimiter(3)
-        self.rotLimiter = wpimath.filter.SlewRateLimiter(3)
+        self.xspeedLimiter = wpimath.filter.SlewRateLimiter(variables.x_slewrate)
+        self.yspeedLimiter = wpimath.filter.SlewRateLimiter(variables.y_slewrate)
+        self.rotLimiter = wpimath.filter.SlewRateLimiter(variables.rot_slewrate)
 
-        # Align the wheels to 0
-        #self.swerve.alignment()
+        self.fieldDrive = 1
 
     #FUTURE
     def autonomousPeriodic(self) -> None:
         #self.driveWithJoystick(False)
         self.swerve.updateOdometry()
 
+
     def teleopPeriodic(self) -> None:
-        self.driveWithJoystick(False)
+        if self.controller.getRawButton(variables.crossButton) == 1:
+            self.fieldDrive = 2
+        if self.controller.getRawButton(variables.circleButton) == 1:
+            self.fieldDrive = 1
+
+        if self.fieldDrive == 2:
+            self.driveWithJoystick(True)
+        else:
+            self.driveWithJoystick(False)
+    
         self.navxGyro.getGyro()
         #self.shootWithJoystick(False)
         #self.shooter.speakershootmotor(1, 1)
-        if self.controller.getRawButton(1) == 1:
-            print("square button pressed")
+        if self.controller.getRawButton(variables.squareButton) == 1:
             self.swerve.alignment()
-        if self.controller.getRawButton(4) == 1:
-            self.swerve.drive(0,0,0,0,self.getPeriod())
-            self.swerve.alignment()
+        #print(self.fieldDrive)
+        
+        
+        
+        # if self.controller.getRawButton(4) == 1:
+        # self.swerve.drive(0,0,0,0,self.getPeriod())
+        # self.swerve.alignment()
 
     def driveWithJoystick(self, fieldRelative: bool) -> None:
         # Get the x speed. We are inverting this because Xbox controllers return
         # negative values when we push forward.
         # NOTE: Check if we need inversion here
+        if fieldRelative:
+            self.swerve.updateOdometry()
+
         xSpeed = (
             self.xspeedLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(1), 0.1)
+                wpimath.applyDeadband(self.controller.getRawAxis(1), variables.x_deadband)
             )
             * variables.kMaxSpeed
         )
@@ -70,7 +86,7 @@ class MyRobot(wpilib.TimedRobot):
         # NOTE: Check if we need inversion here
         ySpeed = (
             -self.yspeedLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(2), 0.6)
+                wpimath.applyDeadband(self.controller.getRawAxis(2), variables.y_deadband)
             )
             * variables.kTMaxSpeed
         )
@@ -81,11 +97,11 @@ class MyRobot(wpilib.TimedRobot):
         # the right by default.
         rot = (
             (-self.rotLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(3), 0.2)
+                wpimath.applyDeadband(self.controller.getRawAxis(3), variables.rot_deadband)
             )
             * variables.kRMaxSpeed) +
             (self.rotLimiter.calculate(
-                wpimath.applyDeadband(self.controller.getRawAxis(4), 0.2)
+                wpimath.applyDeadband(self.controller.getRawAxis(4), variables.rot_deadband)
             )
             * variables.kRMaxSpeed)
         )
