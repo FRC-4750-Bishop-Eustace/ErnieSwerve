@@ -41,15 +41,15 @@ class Drivetrain:
         self.backRightLocation = wpimath.geometry.Translation2d(-0.32, -0.32)
         self.backLeftLocation = wpimath.geometry.Translation2d(-0.32, 0.32)
         '''
-        self.frontLeftLocation = wpimath.geometry.Translation2d(-0.32, 0.32)
-        self.frontRightLocation = wpimath.geometry.Translation2d(-0.32, -0.32)
-        self.backRightLocation = wpimath.geometry.Translation2d(0.32, -0.32)
-        self.backLeftLocation = wpimath.geometry.Translation2d(0.32, 0.32)
+        self.frontLeftLocation = wpimath.geometry.Translation2d(-variables.chassisHalfLength, variables.chassisHalfLength)
+        self.frontRightLocation = wpimath.geometry.Translation2d(-variables.chassisHalfLength, -variables.chassisHalfLength)
+        self.backRightLocation = wpimath.geometry.Translation2d(variables.chassisHalfLength, -variables.chassisHalfLength)
+        self.backLeftLocation = wpimath.geometry.Translation2d(variables.chassisHalfLength, variables.chassisHalfLength)
 
-        self.frontLeft = swervemodule.SwerveModule(4, 3, 4, 13)
-        self.frontRight = swervemodule.SwerveModule(7, 8, 7, 10)
-        self.backRight = swervemodule.SwerveModule(5, 6, 5, 12)
-        self.backLeft = swervemodule.SwerveModule(2, 1, 2, 11)
+        self.frontLeft = swervemodule.SwerveModule(variables.frontLeftDriveController, variables.frontLeftTurnController, variables.frontLeftDriveEncoder, variables.frontLeftTurnEncoder)
+        self.frontRight = swervemodule.SwerveModule(variables.frontRightDriveController, variables.frontRightTurnController, variables.frontRightDriveEncoder, variables.frontRightTurnEncoder)
+        self.backRight = swervemodule.SwerveModule(variables.backRightDriveController, variables.backRightTurnController, variables.backRightDriveEncoder, variables.backRightTurnEncoder)
+        self.backLeft = swervemodule.SwerveModule(variables.backLeftDriveController, variables.backLeftTurnController, variables.backLeftDriveEncoder, variables.backLeftTurnEncoder)
 
 
         '''
@@ -89,9 +89,9 @@ class Drivetrain:
         #self.gyro = wpilib.AnalogGyro(0)
         self.angler = navx.AHRS.create_spi()
         #print("gyroscope = ", self.angler)
-        self.gyro = self.angler.getAngle()
-        self.gyroradians = wpimath.units.degreesToRadians(self.gyro)
-        print("gyro", self.gyro)
+        self.gyroinit = self.angler.getAngle()
+        self.gyroradiansinit = wpimath.units.degreesToRadians(self.gyroinit)
+        # print("gyro", self.gyro)
 
         #NOTE: Just defining the fixed kinematics of the bot
         self.kinematics = wpimath.kinematics.SwerveDrive4Kinematics(
@@ -105,7 +105,7 @@ class Drivetrain:
         #NOTE: Need to understand expected units/values returned - is it meters & radians?
         self.odometry = wpimath.kinematics.SwerveDrive4Odometry(
             self.kinematics,
-            wpimath.geometry.Rotation2d(self.gyroradians),
+            wpimath.geometry.Rotation2d(self.gyroradiansinit),
             #self.angler.getAngle(),
             #self.angler.getRotation2d(),
             #self.gyro.Translation2d(),
@@ -138,6 +138,15 @@ class Drivetrain:
         :param fieldRelative: Whether the provided x and y speeds are relative to the field.
         :param periodSeconds: Time
         """
+
+        #if fieldRelative:
+        #    self.updateOdometry()
+
+        self.gyro = self.angler.getAngle()
+        self.gyroradians = wpimath.units.degreesToRadians(self.gyro)
+
+        #print("gyro", self.gyroradians)
+
         swerveModuleStates = self.kinematics.toSwerveModuleStates(
             wpimath.kinematics.ChassisSpeeds.discretize(
                 wpimath.kinematics.ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -151,7 +160,7 @@ class Drivetrain:
         wpimath.kinematics.SwerveDrive4Kinematics.desaturateWheelSpeeds(
             swerveModuleStates, variables.kMaxSpeed
         )
-
+        
         #NOTE: Should we desaturate for Turning speed motors? 
         
         self.frontLeft.setDesiredState(swerveModuleStates[0])
@@ -159,6 +168,7 @@ class Drivetrain:
         self.backRight.setDesiredState(swerveModuleStates[2])
         self.backLeft.setDesiredState(swerveModuleStates[3])
 
+        
 
         #print(wpimath.kinematics.ChassisSpeeds(0, 0, rot))
         #print(wpimath.kinematics.ChassisSpeeds(xSpeed, ySpeed, rot))
@@ -168,7 +178,7 @@ class Drivetrain:
     def updateOdometry(self) -> None:
         """Updates the field relative position of the robot."""
         self.odometry.update(
-            wpimath.geometry.Rotation2d(self.gyroradians),
+            wpimath.geometry.Rotation2d(self.gyroradiansinit),
             (
                 self.frontLeft.getPosition(),
                 self.frontRight.getPosition(),
@@ -176,6 +186,8 @@ class Drivetrain:
                 self.backLeft.getPosition(),
             ),
         )
+        # print(wpimath.geometry.Rotation2d(self.gyroradians))
+        
     '''
     def alignment(self) -> None:
         #Updates the wheel alignment for robot to zer0
@@ -198,4 +210,6 @@ class Drivetrain:
         self.frontRight.setDesiredState(wpimath.kinematics.SwerveModuleState(0, wpimath.geometry.Rotation2d(0)))
         self.backRight.setDesiredState(wpimath.kinematics.SwerveModuleState(0, wpimath.geometry.Rotation2d(0)))
         self.backLeft.setDesiredState(wpimath.kinematics.SwerveModuleState(0, wpimath.geometry.Rotation2d(0)))
-        print("aligning")
+        # print("aligning")
+
+
