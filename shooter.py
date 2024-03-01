@@ -19,12 +19,14 @@ class ShootModule:
     def __init__(
         self,
     ) -> None:
-
+    def __init__(
+   
         # NOTE: need to confirm output from SparkMaxAbsoluteEncoder - may shift to Relative Encoder
         ## No longer required 
         self.shootMotor1ID = WPI_TalonSRX(14)
         self.shootMotor2ID = WPI_TalonSRX(15)
-        
+            self.stopSensor = wpilib.AnalogInput(0)
+)
         # NOTE: can we use the wpilib.encoder library for these encoders - may need to review
 
         # NOTE: Need to determine if this is the right distance per pulse value (from user guide it shows 42 counts per revolution)
@@ -45,3 +47,11 @@ class ShootModule:
     def stopmotor(self):
         self.shootMotor1ID.set(0)
         self.shootMotor2ID.set(0)
+
+
+
+    def stopSensor(self):
+        if self.stopSensor.getValue() < 1000:
+            self.shootMotor1ID.set(0)
+            self.shootMotor2ID.set(0)
+            
