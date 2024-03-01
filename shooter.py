@@ -9,7 +9,6 @@ import wpilib
 import wpimath.kinematics
 import wpimath.controller
 import variables
-
 from phoenix5 import WPI_TalonSRX
 
 # Variables
@@ -19,8 +18,6 @@ from phoenix5 import WPI_TalonSRX
 class ShootModule:
     def __init__(
         self,
-        shootMotor1ID: int,
-        shootMotor2ID: int,
     ) -> None:
 
         # NOTE: need to confirm output from SparkMaxAbsoluteEncoder - may shift to Relative Encoder
@@ -33,17 +30,18 @@ class ShootModule:
         # NOTE: Need to determine if this is the right distance per pulse value (from user guide it shows 42 counts per revolution)
 
 
-   
-    def ampshootmotor(self):
-        self.shootMotor1ID.set(1)
-        self.shootMotor2ID.set(2)
+    def vacummotor(self):
+        self.shootMotor1ID(variables.intakeSpeedMotor1)
+        self.shootMotor2ID(variables.intakeSpeedMotor2)
 
-    
+    def ampshootmotor(self):
+        self.shootMotor1ID(variables.ampSpeedMotor1)
+        self.shootMotor2ID(variables.ampSpeedMotor2)
+
     def speakershootmotor(self):
-        self.shootMotor1ID.set(5)
-        self.shootMotor2ID.set(5) 
+        self.shootMotor1ID.set(variables.Motor1Speed)
+        self.shootMotor2ID.set(variables.Motor2Speed) 
 
     def stopmotor(self):
         self.shootMotor1ID.set(0)
         self.shootMotor2ID.set(0)
-
