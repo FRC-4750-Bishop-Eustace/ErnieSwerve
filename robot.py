@@ -15,6 +15,9 @@ import drivetrain
 import variables
 import shooter
 import navxGyro
+#import camera
+#import auto
+from cscore import CameraServer
 
 
 class MyRobot(wpilib.TimedRobot):
@@ -24,6 +27,8 @@ class MyRobot(wpilib.TimedRobot):
         self.controller2 = wpilib.Joystick(variables.joystickPort2)
         self.swerve = drivetrain.Drivetrain()
         self.shooter = shooter.ShootModule()
+        #self.swerveAuto = auto.SwerveSubsystem()
+        #self.camera = camera.Camera()
         # navxGyro is a file to test the navx Gyro. This can be ignored/commented out.
         self.navxGyro = navxGyro.Gyro()
 
@@ -35,6 +40,10 @@ class MyRobot(wpilib.TimedRobot):
         self.rotLimiter = wpimath.filter.SlewRateLimiter(variables.rot_slewrate)
 
         self.fieldDrive = 1
+        self.shooter_toggle = 0
+
+        #CameraServer.startAutomaticCapture()
+        
 
     #FUTURE
     def autonomousPeriodic(self) -> None:
@@ -55,13 +64,19 @@ class MyRobot(wpilib.TimedRobot):
     
         self.navxGyro.getGyro()
         #self.shootWithJoystick(False)
-        #self.shooter.speakershootmotor(1, 1)
+        #self.shooter.stopSensor()
         if self.controller.getRawButton(variables.squareButton) == 1:
             self.swerve.alignment()
         #print(self.fieldDrive)
-        
-        
-        
+
+        if self.controller.getRawButton(variables.triangleButton) == 1 and self.shooter_toggle == 0:
+            self.shooter.speakershootmotor()
+            self.shooter_toggle = 1
+        else:
+            self.shooter.stopmotor()
+            self.shooter_toggle = 0
+         
+    
         # if self.controller.getRawButton(4) == 1:
         # self.swerve.drive(0,0,0,0,self.getPeriod())
         # self.swerve.alignment()
