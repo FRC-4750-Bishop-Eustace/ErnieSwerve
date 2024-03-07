@@ -16,6 +16,10 @@ from rev import CANSparkMax
 import wpimath.units
 import drivetrain
 import variables
+import pathplannerlib.auto
+from pathplannerlib.auto import AutoBuilder
+from pathplannerlib.config import HolonomicPathFollowerConfig, ReplanningConfig, PIDConstants
+from wpilib import DriverStation
 
 
 kWheelRadius = 0.0508 # In meters
@@ -130,7 +134,41 @@ class SwerveModule:
         # Limit the PID Controller's input range between -pi and pi and set the input
         # to be continuous.
         self.turningPIDController.enableContinuousInput(-math.pi, math.pi)
+        
+        # Configure the AutoBuilder last
+        # DONT KNOW IF THIS WORKS YET
+        AutoBuilder.configureHolonomic(
+            wpimath.geometry.Pose2d(), # Robot pose supplier #
+            self.resetPose, # Method to reset odometry (will be called if your auto has a starting pose)
+            self.getRobotRelativeSpeeds, # ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+            self.driveRobotRelative, # Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds
+            HolonomicPathFollowerConfig( # HolonomicPathFollowerConfig, this should likely live in your Constants class
+                PIDConstants(variables.drivePID_P, variables.drivePID_I, variables.drivePID_D), # Translation PID constants
+                PIDConstants(variables.turnPID_P, variables.turnPID_I, variables.turnPID_D), # Rotation PID constants
+                variables.kMaxSpeed, # Max module speed, in m/s
+                variables.chassisHalfLength, # Drive base radius in meters. Distance from robot center to furthest module.
+                ReplanningConfig() # Default path replanning config. See the API for the options here
+            ),
+            self.shouldFlipPath, # Supplier to control path flipping based on alliance color
+            self # Reference to this subsystem to set requirements
+        )
 
+    def shouldFlipPath():
+        # Boolean supplier that controls when the path will be mirrored for the red alliance
+        # This will flip the path being followed to the red side of the field.
+        # THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+        return DriverStation.getAlliance() == DriverStation.Alliance.kRed
+
+    def resetPose(self):
+        return 0
+
+    def getRobotRelativeSpeeds(self):
+        return 0
+
+    def driveRobotRelative(self):
+        return 0
+    
+    
     def getState(self) -> wpimath.kinematics.SwerveModuleState:
         """Returns the current state of the module.
 
@@ -141,6 +179,7 @@ class SwerveModule:
             self.driveEncoder.getVelocity(),
             wpimath.geometry.Rotation2d(self.turningEncoder.getPosition()),
         )
+
 
     def getPosition(self) -> wpimath.kinematics.SwerveModulePosition:
         """Returns the current position of the module.
