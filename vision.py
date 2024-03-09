@@ -8,10 +8,10 @@ CameraServer.enableLogging()
 camera = CameraServer.startAutomaticCapture()
 camera.setResolution(160, 120)
 
-sink = CameraServer.getVideo()
+camera = CameraServer.getVideo()
 
 while True:
-   time, input_img = sink.grabFrame(input_img)
+   time, input_img = camera.grabFrame(input_img)
 
    if time == 0: # There is an error
       continue
