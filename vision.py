@@ -8,7 +8,7 @@ CameraServer.enableLogging()
 camera = CameraServer.startAutomaticCapture()
 camera.setResolution(160, 120)
 
-sink = cs.getVideo()
+sink = CameraServer.getVideo()
 
 while True:
    time, input_img = cvSink.grabFrame(input_img)
