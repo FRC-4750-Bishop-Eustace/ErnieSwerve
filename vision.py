@@ -7,7 +7,7 @@ CameraServer.enableLogging()
 
 camera = CameraServer.startAutomaticCapture()
 camera.setResolution(160, 120)
-
+input_img = np.zeros(shape=(120,100,3), dtype=np.uint8)
 sink = CameraServer.getVideo()
 
 while True:
