@@ -11,7 +11,7 @@ camera.setResolution(160, 120)
 sink = CameraServer.getVideo()
 
 while True:
-   time, input_img = cvSink.grabFrame(input_img)
+   time, input_img = sink.grabFrame(input_img)
 
    if time == 0: # There is an error
       continue
