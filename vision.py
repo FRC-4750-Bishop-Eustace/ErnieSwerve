@@ -9,6 +9,7 @@ while True:
    cv2.waitKey(1)
 
 frame=cv2.imread("output.jpg")
+cropped_img=frame[0:int(frame.shape[0]/2)]
 lower_orange=np.array([255,75,0])
 upper_orange=np.array([255,165,0])
 
