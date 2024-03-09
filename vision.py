@@ -6,7 +6,7 @@ from cscore import CameraServer
 CameraServer.enableLogging()
 
 camera = CameraServer.startAutomaticCapture()
-camera.setResolution(width, height)
+camera.setResolution(160, 120)
 
 sink = cs.getVideo()
 
