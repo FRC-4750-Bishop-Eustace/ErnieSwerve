@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
 from cscore import CameraServer
-import cv2
-import numpy as np
+
 
 CameraServer.enableLogging()
 
